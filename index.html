@@ -6,16 +6,16 @@
   <title>Homey Ambient Dashboard — Ninove</title>
   <style>
     :root {
-      --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 48%, #2c5364 100%);
-      --card-bg: rgba(255, 255, 255, 0.14);
-      --card-border: rgba(255, 255, 255, 0.28);
-      --card-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
-      --text-main: #ffffff;
-      --text-soft: rgba(255, 255, 255, 0.85);
-      --text-muted: rgba(255, 255, 255, 0.68);
-      --accent-warm: #ffd166;
-      --accent-cool: #72efdd;
-      --accent-power: #80ffdb;
+      --bg-gradient: linear-gradient(135deg, #38bdf8 0%, #7dd3fc 52%, #fde68a 100%);
+      --card-bg: rgba(255, 255, 255, 0.78);
+      --card-border: rgba(255, 255, 255, 0.9);
+      --card-shadow: 0 20px 44px rgba(15, 23, 42, 0.14);
+      --text-main: #0f172a;
+      --text-soft: #1e293b;
+      --text-muted: #475569;
+      --accent-warm: #c2410c;
+      --accent-cool: #0369a1;
+      --accent-power: #047857;
     }
 
     * {
@@ -59,7 +59,7 @@
       height: 52vw;
       top: -15%;
       left: -10%;
-      background: radial-gradient(circle, rgba(114, 239, 221, 0.55) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.75) 0%, transparent 70%);
     }
 
     .blob-2 {
@@ -67,7 +67,7 @@
       height: 48vw;
       bottom: -18%;
       right: -8%;
-      background: radial-gradient(circle, rgba(255, 209, 102, 0.45) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(254, 240, 138, 0.8) 0%, transparent 70%);
       animation-delay: -6s;
     }
 
@@ -76,7 +76,7 @@
       height: 40vw;
       top: 25%;
       left: 35%;
-      background: radial-gradient(circle, rgba(94, 96, 206, 0.45) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(186, 230, 253, 0.8) 0%, transparent 70%);
       animation-delay: -12s;
     }
 
@@ -103,20 +103,21 @@
       display: flex;
       align-items: center;
       gap: 0.7rem;
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.9);
       padding: 0.45rem 1rem;
       border-radius: 999px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      color: var(--text-main);
     }
 
     .live-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background: #4ade80;
-      box-shadow: 0 0 10px #4ade80;
+      background: #16a34a;
+      box-shadow: 0 0 8px rgba(22, 163, 74, 0.6);
     }
 
     .brand-name {
@@ -136,14 +137,14 @@
       width: 12px;
       border-radius: 999px;
       border: none;
-      background: rgba(255, 255, 255, 0.35);
+      background: rgba(15, 23, 42, 0.25);
       cursor: pointer;
       transition: all 0.35s ease;
     }
 
     .indicator.active {
       width: 36px;
-      background: #ffffff;
+      background: #0f172a;
     }
 
     /* Slides */
@@ -191,7 +192,8 @@
       line-height: 1;
       letter-spacing: -0.04em;
       font-variant-numeric: tabular-nums;
-      text-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      color: #0f172a;
+      text-shadow: 0 2px 12px rgba(255, 255, 255, 0.55);
     }
 
     .clock-date {
@@ -208,8 +210,8 @@
       gap: 1.4rem;
       padding: 1.1rem 2rem;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(16px);
     }
 
@@ -300,7 +302,7 @@
       width: 100%;
       height: 18px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.16);
+      background: rgba(15, 23, 42, 0.14);
       overflow: hidden;
     }
 
@@ -308,7 +310,7 @@
       height: 100%;
       width: 15%;
       border-radius: 999px;
-      background: linear-gradient(90deg, #4ade80, #ffd166, #f87171);
+      background: linear-gradient(90deg, #16a34a, #ea580c, #dc2626);
       transition: width 0.6s ease;
     }
 
