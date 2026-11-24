@@ -1,60 +1,836 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homey Ambient TV Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
 
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #060913;
+      color: #f8fafc;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
 
+    #season-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.9s ease, background 1s ease;
+      background: linear-gradient(180deg, #23140b 0%, #462613 52%, #7c4421 100%);
+    }
 
+    #season-bg.visible {
+      opacity: 1;
+    }
 
-HOMEY AMBIENT Seizoen
+    .ambient-orb {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(110px);
+      opacity: 0.35;
+      pointer-events: none;
+      animation: floatOrb 22s ease-in-out infinite alternate;
+    }
 
-Goedenavond
-20:15
-maandag 23 november
-🌤️ Ninove • 8,4 °C Licht bewolkt
-Klimaat & Comfort
-Temperatuur binnen & buiten
-Binnen
-Woonkamer
-🏠
-21,4 °C
-💧 Luchtvochtigheid: 52%
-Comfortabel klimaat
-Buiten
-Ninove
-🌤️
-8,4 °C
-⛅ Licht bewolkt
-+13,0 °C binnen vs buiten
-Slimme Meter · P1
-Actueel stroomverbruik
-⚡ Homey P1 Meter · Realtime
-640 W
-0,64 kW actueel vermogen
-0 W 1.500 W 3.000 W 5.000 W+
+    .orb-1 {
+      width: 48vw;
+      height: 48vw;
+      background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+      top: -15%;
+      left: -10%;
+    }
 
-Laag verbruik — rustige basislast
-← → ⏸ Pauze ⚙️ Homey & Test
-Homey Koppeling & Testpaneel
-Live waarden via URL of handmatig testen
-✕
-Homey Flow → Chromecast URL
-Gebruik in Homey de actie om een website te casten naar je TV met deze parameters:
-https://voodoo077.github.io/dashboard/?binnen=21.4&vocht=52&p1=640 Kopieer URL met huidige waarden
-Gekopieerd naar klembord!
-Weergave & Seizoen
-Wisseltijd tussen pagina's
-          6 seconden
-          10 seconden (aanbevolen)
-          15 seconden
-          30 seconden
-        
-Seizoensthema (Slide 1)
-          Automatisch op datum
-          Lente
-          Zomer
-          Herfst
-          Winter
-        
-Testwaarden (Binnen, Vocht, P1)
-Binnentemperatuur (?binnen=) 21,4 °C
-Luchtvochtigheid binnen (?vocht=) 52%
-Buitentemperatuur (?buiten=) 8,4 °C
-P1 Stroomverbruik in Watt (?p1=) 640 W
+    .orb-2 {
+      width: 42vw;
+      height: 42vw;
+      background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+      bottom: -18%;
+      right: -8%;
+      animation-delay: -7s;
+    }
+
+    .orb-3 {
+      width: 34vw;
+      height: 34vw;
+      background: radial-gradient(circle, #0ea5e9 0%, transparent 70%);
+      top: 35%;
+      left: 42%;
+      opacity: 0.2;
+      animation-delay: -14s;
+    }
+
+    @keyframes floatOrb {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(3vw, -2vh) scale(1.06); }
+      100% { transform: translate(-2vw, 3vh) scale(0.96); }
+    }
+
+    #weather-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    #weather-canvas.visible {
+      opacity: 0.9;
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 4vw 6vw;
+      opacity: 0;
+      transform: translateY(18px) scale(0.985);
+      pointer-events: none;
+      transition: opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tv-controls {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    body:hover .tv-controls,
+    .tv-controls:focus-within,
+    .tv-controls.force-visible {
+      opacity: 1;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.3);
+      border-radius: 9999px;
+    }
+  </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden antialiased selection:bg-sky-500/30">
+
+  <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+  </div>
+
+  <div id="season-bg"></div>
+  <canvas id="weather-canvas"></canvas>
+
+  <header class="fixed top-0 left-0 right-0 z-20 flex items-center justify-between px-8 py-6 pointer-events-none">
+    <div class="flex items-center gap-3">
+      <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]"></span>
+      <span id="header-brand" class="text-xs sm:text-sm font-semibold tracking-[0.2em] uppercase text-slate-300/90">
+        HOMEY AMBIENT
+      </span>
+      <span id="season-badge" class="hidden ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-slate-100 border border-white/15">
+        Seizoen
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2.5" id="slide-dots">
+      <button data-slide="0" aria-label="Pagina 1: Klok en Weer" class="dot-btn pointer-events-auto w-8 h-2 rounded-full bg-sky-400 transition-all duration-300"></button>
+      <button data-slide="1" aria-label="Pagina 2: Temperatuur" class="dot-btn pointer-events-auto w-2.5 h-2 rounded-full bg-white/25 hover:bg-white/40 transition-all duration-300"></button>
+      <button data-slide="2" aria-label="Pagina 3: Energie" class="dot-btn pointer-events-auto w-2.5 h-2 rounded-full bg-white/25 hover:bg-white/40 transition-all duration-300"></button>
+    </div>
+  </header>
+
+  <main class="relative z-10 w-full h-full">
+
+    <section id="slide-0" class="slide active text-center">
+      <p id="greeting-text" class="text-xl sm:text-2xl md:text-3xl font-light tracking-wide text-slate-300 mb-3">
+        Goedenavond
+      </p>
+
+      <div id="clock-time" class="tabular-nums font-bold tracking-tight text-white leading-none drop-shadow-[0_10px_35px_rgba(0,0,0,0.45)]"
+           style="font-size: clamp(4.5rem, 15vw, 12.5rem);">
+        20:15
+      </div>
+
+      <p id="clock-date" class="mt-4 text-xl sm:text-2xl md:text-3xl font-normal text-slate-300 capitalize">
+        maandag 23 november
+      </p>
+
+      <div id="hero-weather-pill" class="mt-9 inline-flex items-center gap-4 px-7 py-3.5 rounded-full glass-card text-lg sm:text-2xl">
+        <span id="hero-weather-icon" class="text-2xl sm:text-3xl">🌤️</span>
+        <span id="hero-location" class="font-medium text-slate-200">Ninove</span>
+        <span class="text-white/25">•</span>
+        <span id="hero-outdoor-temp" class="tabular-nums font-semibold text-sky-300">8,4 °C</span>
+        <span id="hero-weather-desc" class="hidden md:inline text-slate-300/90 text-base sm:text-lg">Licht bewolkt</span>
+      </div>
+    </section>
+
+    <section id="slide-1" class="slide">
+      <div class="w-full max-w-6xl">
+        <div class="text-center mb-8 md:mb-12">
+          <p class="text-xs sm:text-sm uppercase tracking-[0.22em] text-sky-300/90 font-semibold mb-2">
+            Klimaat &amp; Comfort
+          </p>
+          <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white">
+            Temperatuur binnen &amp; buiten
+          </h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-10">
+          <div class="glass-card rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <span class="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">Binnen</span>
+                <h3 id="indoor-label" class="text-2xl sm:text-3xl font-semibold text-white mt-1">Woonkamer</h3>
+              </div>
+              <div class="w-12 h-12 rounded-2xl bg-amber-400/15 border border-amber-300/25 flex items-center justify-center text-2xl">
+                🏠
+              </div>
+            </div>
+
+            <div class="my-4 flex items-baseline gap-3">
+              <span id="indoor-temp-value" class="tabular-nums font-extrabold tracking-tight text-amber-300 leading-none"
+                    style="font-size: clamp(3.8rem, 9vw, 7rem);">
+                21,4
+              </span>
+              <span class="text-3xl sm:text-4xl font-semibold text-slate-300">°C</span>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-slate-300">
+              <div class="flex items-center gap-2 text-lg sm:text-xl">
+                <span>💧</span>
+                <span>Luchtvochtigheid:</span>
+                <strong id="humidity-value" class="tabular-nums text-white font-semibold">52%</strong>
+              </div>
+              <span id="comfort-badge" class="px-3.5 py-1 rounded-full text-sm font-medium bg-emerald-500/15 text-emerald-300 border border-emerald-400/25">
+                Comfortabel klimaat
+              </span>
+            </div>
+          </div>
+
+          <div class="glass-card rounded-3xl p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <span class="text-xs uppercase tracking-[0.18em] text-slate-400 font-semibold">Buiten</span>
+                <h3 id="outdoor-label" class="text-2xl sm:text-3xl font-semibold text-white mt-1">Ninove</h3>
+              </div>
+              <div id="outdoor-card-icon" class="w-12 h-12 rounded-2xl bg-sky-400/15 border border-sky-300/25 flex items-center justify-center text-2xl">
+                🌤️
+              </div>
+            </div>
+
+            <div class="my-4 flex items-baseline gap-3">
+              <span id="outdoor-temp-value" class="tabular-nums font-extrabold tracking-tight text-sky-300 leading-none"
+                    style="font-size: clamp(3.8rem, 9vw, 7rem);">
+                8,4
+              </span>
+              <span class="text-3xl sm:text-4xl font-semibold text-slate-300">°C</span>
+            </div>
+
+            <div class="mt-6 pt-5 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-slate-300">
+              <div class="flex items-center gap-2 text-lg sm:text-xl">
+                <span id="outdoor-condition-icon">⛅</span>
+                <span id="outdoor-condition-text">Licht bewolkt</span>
+              </div>
+              <span id="temp-diff-badge" class="tabular-nums px-3.5 py-1 rounded-full text-sm font-medium bg-sky-500/15 text-sky-200 border border-sky-400/25">
+                +13,0 °C binnen vs buiten
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="slide-2" class="slide">
+      <div class="w-full max-w-5xl text-center">
+        <p class="text-xs sm:text-sm uppercase tracking-[0.22em] text-emerald-300/90 font-semibold mb-2">
+          Slimme Meter · P1
+        </p>
+        <h2 class="text-3xl sm:text-5xl font-bold tracking-tight text-white mb-8 md:mb-10">
+          Actueel stroomverbruik
+        </h2>
+
+        <div class="glass-card rounded-3xl p-8 sm:p-12 md:p-14 relative overflow-hidden">
+          <div class="flex flex-col items-center justify-center">
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm text-slate-300 mb-6">
+              <span>⚡</span>
+              <span id="power-source-label">Homey P1 Meter · Realtime</span>
+            </div>
+
+            <div class="flex items-baseline justify-center gap-3 sm:gap-5">
+              <span id="power-watts-value" class="tabular-nums font-extrabold tracking-tight text-emerald-300 leading-none"
+                    style="font-size: clamp(4.2rem, 13vw, 10.5rem);">
+                640
+              </span>
+              <span class="text-3xl sm:text-5xl md:text-6xl font-bold text-slate-300">W</span>
+            </div>
+
+            <p id="power-kw-sub" class="tabular-nums mt-3 text-xl sm:text-2xl text-slate-300/90 font-medium">
+              0,64 kW actueel vermogen
+            </p>
+
+            <div class="w-full max-w-2xl mt-9">
+              <div class="flex justify-between text-xs uppercase tracking-wider text-slate-400 mb-2 tabular-nums">
+                <span>0 W</span>
+                <span>1.500 W</span>
+                <span>3.000 W</span>
+                <span>5.000 W+</span>
+              </div>
+              <div class="w-full h-3.5 rounded-full bg-slate-800/90 border border-white/10 overflow-hidden p-0.5">
+                <div id="power-bar-fill" class="h-full rounded-full bg-gradient-to-r from-emerald-400 via-amber-300 to-rose-500 transition-all duration-700 ease-out"
+                     style="width: 16%;"></div>
+              </div>
+            </div>
+
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <span id="power-status-badge" class="px-4 py-1.5 rounded-full text-sm sm:text-base font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">
+                Laag verbruik — rustige basislast
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="tv-controls fixed bottom-5 right-5 z-30 flex items-center gap-2.5">
+    <button id="prev-slide-btn" title="Vorige pagina" class="glass-card px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-white/15 transition cursor-pointer">
+      ←
+    </button>
+    <button id="next-slide-btn" title="Volgende pagina" class="glass-card px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-white/15 transition cursor-pointer">
+      →
+    </button>
+    <button id="toggle-pause-btn" title="Pauzeer of hervat automatische wissel" class="glass-card px-4 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-white/15 transition cursor-pointer">
+      ⏸ Pauze
+    </button>
+    <button id="toggle-settings-btn" class="glass-card px-4 py-2.5 rounded-xl text-sm font-semibold text-sky-300 hover:bg-white/15 transition cursor-pointer">
+      ⚙️ Homey &amp; Test
+    </button>
+  </div>
+
+  <aside id="settings-drawer" class="fixed top-0 right-0 h-full w-full max-w-md z-40 bg-slate-950/95 backdrop-blur-2xl border-l border-white/15 shadow-2xl transform translate-x-full transition-transform duration-300 overflow-y-auto p-6 text-slate-200">
+    <div class="flex items-center justify-between pb-4 border-b border-white/10">
+      <div>
+        <h3 class="text-lg font-bold text-white">Homey Koppeling &amp; Testpaneel</h3>
+        <p class="text-xs text-slate-400">Live waarden via URL of handmatig testen</p>
+      </div>
+      <button id="close-settings-btn" class="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/15 flex items-center justify-center text-slate-300 cursor-pointer">
+        ✕
+      </button>
+    </div>
+
+    <div class="mt-5 p-4 rounded-2xl bg-sky-500/10 border border-sky-400/25 text-xs leading-relaxed space-y-2">
+      <div class="font-semibold text-sky-200 text-sm">Homey Flow → Chromecast URL</div>
+      <p class="text-slate-300">
+        Gebruik in Homey de actie om een website te casten naar je TV met deze parameters:
+      </p>
+      <code id="generated-url-preview" class="block p-2.5 rounded-xl bg-black/50 text-emerald-300 break-all select-all">
+        https://voodoo077.github.io/dashboard/?binnen=21.4&amp;vocht=52&amp;p1=640
+      </code>
+      <button id="copy-url-btn" class="w-full py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold transition cursor-pointer">
+        Kopieer URL met huidige waarden
+      </button>
+      <p id="copy-feedback" class="text-emerald-300 text-center hidden">Gekopieerd naar klembord!</p>
+    </div>
+
+    <div class="mt-6 space-y-4">
+      <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Weergave &amp; Seizoen</div>
+
+      <div>
+        <label class="block text-xs text-slate-400 mb-1.5">Wisseltijd tussen pagina's</label>
+        <select id="interval-select" class="w-full rounded-xl bg-slate-900 border border-white/15 px-3 py-2 text-sm text-white">
+          <option value="6000">6 seconden</option>
+          <option value="10000" selected>10 seconden (aanbevolen)</option>
+          <option value="15000">15 seconden</option>
+          <option value="30000">30 seconden</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs text-slate-400 mb-1.5">Seizoensthema (Slide 1)</label>
+        <select id="season-select" class="w-full rounded-xl bg-slate-900 border border-white/15 px-3 py-2 text-sm text-white">
+          <option value="auto" selected>Automatisch op datum</option>
+          <option value="spring">Lente</option>
+          <option value="summer">Zomer</option>
+          <option value="autumn">Herfst</option>
+          <option value="winter">Winter</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mt-6 space-y-4 pt-5 border-t border-white/10">
+      <div class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Testwaarden (Binnen, Vocht, P1)</div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-slate-300">Binnentemperatuur (<code>?binnen=</code>)</span>
+          <span id="label-indoor" class="tabular-nums font-semibold text-amber-300">21,4 °C</span>
+        </div>
+        <input id="input-indoor" type="range" min="10" max="30" step="0.1" value="21.4" class="w-full accent-amber-400 cursor-pointer" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-slate-300">Luchtvochtigheid binnen (<code>?vocht=</code>)</span>
+          <span id="label-humidity" class="tabular-nums font-semibold text-sky-300">52%</span>
+        </div>
+        <input id="input-humidity" type="range" min="20" max="90" step="1" value="52" class="w-full accent-sky-400 cursor-pointer" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-slate-300">Buitentemperatuur (<code>?buiten=</code>)</span>
+          <span id="label-outdoor" class="tabular-nums font-semibold text-sky-300">8,4 °C</span>
+        </div>
+        <input id="input-outdoor" type="range" min="-15" max="40" step="0.1" value="8.4" class="w-full accent-sky-400 cursor-pointer" />
+      </div>
+
+      <div>
+        <div class="flex justify-between text-xs mb-1">
+          <span class="text-slate-300">P1 Stroomverbruik in Watt (<code>?p1=</code>)</span>
+          <span id="label-power" class="tabular-nums font-semibold text-emerald-300">640 W</span>
+        </div>
+        <input id="input-power" type="range" min="0" max="6000" step="10" value="640" class="w-full accent-emerald-400 cursor-pointer" />
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    const state = {
+      indoorTemp: 21.4,
+      humidity: 52,
+      outdoorTemp: 8.4,
+      outdoorDesc: 'Licht bewolkt',
+      outdoorIcon: '🌤️',
+      location: 'Ninove',
+      indoorLabel: 'Woonkamer',
+      powerWatts: 640,
+      seasonMode: 'auto',
+      currentSlide: 0,
+      totalSlides: 3,
+      intervalMs: 10000,
+      isPaused: false,
+      timerId: null
+    };
+
+    const SEASON_THEMES = {
+      spring: {
+        name: 'Lente',
+        gradient: 'linear-gradient(180deg, #0d281e 0%, #164232 55%, #1f5c45 100%)',
+        particleColor: 'rgba(167, 243, 208, 0.65)',
+        particleType: 'petals'
+      },
+      summer: {
+        name: 'Zomer',
+        gradient: 'linear-gradient(180deg, #0c2442 0%, #143d6b 55%, #1e5c8a 100%)',
+        particleColor: 'rgba(253, 224, 71, 0.45)',
+        particleType: 'sparks'
+      },
+      autumn: {
+        name: 'Herfst',
+        gradient: 'linear-gradient(180deg, #23140b 0%, #462613 52%, #7c4421 100%)',
+        particleColor: 'rgba(251, 146, 60, 0.7)',
+        particleType: 'leaves'
+      },
+      winter: {
+        name: 'Winter',
+        gradient: 'linear-gradient(180deg, #081526 0%, #0f294a 55%, #194270 100%)',
+        particleColor: 'rgba(224, 242, 254, 0.8)',
+        particleType: 'snow'
+      }
+    };
+
+    function detectSeasonByDate() {
+      const month = new Date().getMonth() + 1;
+      if (month >= 3 && month <= 5) return 'spring';
+      if (month >= 6 && month <= 8) return 'summer';
+      if (month >= 9 && month <= 11) return 'autumn';
+      return 'winter';
+    }
+
+    function parseNumberParam(params, keys) {
+      for (const key of keys) {
+        const raw = params.get(key);
+        if (raw !== null && raw.trim() !== '') {
+          const cleaned = raw.trim().replace(',', '.').replace(/[^0-9.\-]/g, '');
+          const num = parseFloat(cleaned);
+          if (!Number.isNaN(num) && Number.isFinite(num)) {
+            return num;
+          }
+        }
+      }
+      return null;
+    }
+
+    function loadFromUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+
+      const binnen = parseNumberParam(params, ['binnen', 'indoor', 'temp_binnen']);
+      const vocht = parseNumberParam(params, ['vocht', 'humidity', 'luchtvochtigheid']);
+      const buiten = parseNumberParam(params, ['buiten', 'outdoor', 'temp_buiten']);
+      const p1 = parseNumberParam(params, ['p1', 'power', 'watt', 'verbruik']);
+
+      if (binnen !== null) state.indoorTemp = binnen;
+      if (vocht !== null) state.humidity = Math.max(0, Math.min(100, Math.round(vocht)));
+      if (buiten !== null) {
+        state.outdoorTemp = buiten;
+        state.outdoorDesc = 'Via Homey';
+      }
+      if (p1 !== null) state.powerWatts = Math.max(0, Math.round(p1));
+
+      const loc = params.get('locatie') || params.get('location');
+      if (loc && loc.trim()) state.location = loc.trim();
+
+      const room = params.get('kamer') || params.get('room');
+      if (room && room.trim()) state.indoorLabel = room.trim();
+
+      const seizoen = (params.get('seizoen') || params.get('season') || '').toLowerCase();
+      if (['auto', 'spring', 'summer', 'autumn', 'winter'].includes(seizoen)) {
+        state.seasonMode = seizoen;
+      }
+    }
+
+    function formatNlNumber(val, decimals = 1) {
+      return Number(val).toFixed(decimals).replace('.', ',');
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+
+      const clockEl = document.getElementById('clock-time');
+      const dateEl = document.getElementById('clock-date');
+      const greetEl = document.getElementById('greeting-text');
+
+      if (clockEl) clockEl.textContent = `${hours}:${minutes}`;
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('nl-BE', {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long'
+        });
+      }
+
+      if (greetEl) {
+        const h = now.getHours();
+        if (h < 6) greetEl.textContent = 'Goedenacht';
+        else if (h < 12) greetEl.textContent = 'Goedemorgen';
+        else if (h < 18) greetEl.textContent = 'Goedemiddag';
+        else greetEl.textContent = 'Goedenavond';
+      }
+    }
+
+    function applySeasonTheme() {
+      const activeSeason = state.seasonMode === 'auto' ? detectSeasonByDate() : state.seasonMode;
+      const theme = SEASON_THEMES[activeSeason] || SEASON_THEMES.autumn;
+      const bgEl = document.getElementById('season-bg');
+      const badgeEl = document.getElementById('season-badge');
+
+      if (bgEl) {
+        bgEl.style.background = theme.gradient;
+        bgEl.classList.toggle('visible', state.currentSlide === 0);
+      }
+
+      if (badgeEl) {
+        badgeEl.textContent = theme.name;
+        badgeEl.classList.remove('hidden');
+      }
+
+      initParticles(theme);
+    }
+
+    function updateDashboardUI() {
+      document.getElementById('hero-location').textContent = state.location;
+      document.getElementById('outdoor-label').textContent = state.location;
+      document.getElementById('indoor-label').textContent = state.indoorLabel;
+
+      const indoorStr = formatNlNumber(state.indoorTemp, 1);
+      const outdoorStr = formatNlNumber(state.outdoorTemp, 1);
+
+      document.getElementById('indoor-temp-value').textContent = indoorStr;
+      document.getElementById('outdoor-temp-value').textContent = outdoorStr;
+      document.getElementById('hero-outdoor-temp').textContent = `${outdoorStr} °C`;
+      document.getElementById('humidity-value').textContent = `${state.humidity}%`;
+
+      document.getElementById('hero-weather-icon').textContent = state.outdoorIcon;
+      document.getElementById('outdoor-card-icon').textContent = state.outdoorIcon;
+      document.getElementById('outdoor-condition-text').textContent = state.outdoorDesc;
+      document.getElementById('hero-weather-desc').textContent = state.outdoorDesc;
+
+      const diff = state.indoorTemp - state.outdoorTemp;
+      const sign = diff >= 0 ? '+' : '';
+      document.getElementById('temp-diff-badge').textContent =
+        `${sign}${formatNlNumber(diff, 1)} °C binnen vs buiten`;
+
+      const comfortBadge = document.getElementById('comfort-badge');
+      if (state.humidity >= 40 && state.humidity <= 60 && state.indoorTemp >= 19 && state.indoorTemp <= 23) {
+        comfortBadge.textContent = 'Comfortabel klimaat';
+      } else if (state.humidity > 65) {
+        comfortBadge.textContent = 'Vochtige lucht binnen';
+      } else {
+        comfortBadge.textContent = 'Aandacht voor klimaat';
+      }
+
+      const watts = Math.max(0, Math.round(state.powerWatts));
+      document.getElementById('power-watts-value').textContent = watts.toLocaleString('nl-BE');
+      document.getElementById('power-kw-sub').textContent = `${formatNlNumber(watts / 1000, 2)} kW actueel vermogen`;
+
+      const pct = Math.min(100, Math.max(2, (watts / 5000) * 100));
+      document.getElementById('power-bar-fill').style.width = `${pct}%`;
+
+      const statusBadge = document.getElementById('power-status-badge');
+      if (watts < 1000) {
+        statusBadge.textContent = 'Laag verbruik — rustige basislast';
+      } else if (watts < 2800) {
+        statusBadge.textContent = 'Gemiddeld verbruik — toestellen actief';
+      } else {
+        statusBadge.textContent = 'Hoog verbruik — zware belasting';
+      }
+
+      document.getElementById('label-indoor').textContent = `${indoorStr} °C`;
+      document.getElementById('label-humidity').textContent = `${state.humidity}%`;
+      document.getElementById('label-outdoor').textContent = `${outdoorStr} °C`;
+      document.getElementById('label-power').textContent = `${watts} W`;
+
+      document.getElementById('input-indoor').value = state.indoorTemp;
+      document.getElementById('input-humidity').value = state.humidity;
+      document.getElementById('input-outdoor').value = state.outdoorTemp;
+      document.getElementById('input-power').value = watts;
+
+      const baseUrl = `${window.location.origin}${window.location.pathname}`;
+      const cleanBase = baseUrl.startsWith('http') ? baseUrl : 'https://voodoo077.github.io/dashboard/';
+      const fullUrl = `${cleanBase}?binnen=${state.indoorTemp}&vocht=${state.humidity}&p1=${watts}`;
+      document.getElementById('generated-url-preview').textContent = fullUrl;
+    }
+
+    function showSlide(index) {
+      state.currentSlide = ((index % state.totalSlides) + state.totalSlides) % state.totalSlides;
+
+      document.querySelectorAll('.slide').forEach((el, idx) => {
+        el.classList.toggle('active', idx === state.currentSlide);
+      });
+
+      document.querySelectorAll('.dot-btn').forEach((dot, idx) => {
+        if (idx === state.currentSlide) {
+          dot.classList.remove('w-2.5', 'bg-white/25');
+          dot.classList.add('w-8', 'bg-sky-400');
+        } else {
+          dot.classList.remove('w-8', 'bg-sky-400');
+          dot.classList.add('w-2.5', 'bg-white/25');
+        }
+      });
+
+      const bgEl = document.getElementById('season-bg');
+      const canvasEl = document.getElementById('weather-canvas');
+      const isFirstSlide = state.currentSlide === 0;
+      if (bgEl) bgEl.classList.toggle('visible', isFirstSlide);
+      if (canvasEl) canvasEl.classList.toggle('visible', isFirstSlide);
+    }
+
+    function restartSlideTimer() {
+      if (state.timerId) clearInterval(state.timerId);
+      if (!state.isPaused) {
+        state.timerId = setInterval(() => {
+          showSlide(state.currentSlide + 1);
+        }, state.intervalMs);
+      }
+    }
+
+    let particles = [];
+    let animFrameId = null;
+
+    function initParticles(theme) {
+      const canvas = document.getElementById('weather-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      particles = Array.from({ length: 28 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: 2 + Math.random() * 4,
+        vy: 0.4 + Math.random() * 0.9,
+        vx: -0.3 + Math.random() * 0.6,
+        color: theme.particleColor
+      }));
+
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+
+      function renderLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const p of particles) {
+          p.y += p.vy;
+          p.x += p.vx + Math.sin(p.y * 0.01) * 0.25;
+          if (p.y > canvas.height) {
+            p.y = -10;
+            p.x = Math.random() * canvas.width;
+          }
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = p.color;
+          ctx.fill();
+        }
+        animFrameId = requestAnimationFrame(renderLoop);
+      }
+      renderLoop();
+    }
+
+    async function fetchOutdoorWeatherIfNeeded() {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('buiten') || params.has('outdoor')) return;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      try {
+        const res = await fetch(
+          'https://api.open-meteo.com/v1/forecast?latitude=50.835&longitude=4.024&current=temperature_2m,weather_code&timezone=Europe%2FBrussels',
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.current && typeof data.current.temperature_2m === 'number') {
+          state.outdoorTemp = data.current.temperature_2m;
+          state.outdoorDesc = 'Actueel weer';
+          updateDashboardUI();
+        }
+      } catch (_) {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('.dot-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          showSlide(Number(btn.dataset.slide));
+          restartSlideTimer();
+        });
+      });
+
+      document.getElementById('prev-slide-btn').addEventListener('click', () => {
+        showSlide(state.currentSlide - 1);
+        restartSlideTimer();
+      });
+
+      document.getElementById('next-slide-btn').addEventListener('click', () => {
+        showSlide(state.currentSlide + 1);
+        restartSlideTimer();
+      });
+
+      document.getElementById('toggle-pause-btn').addEventListener('click', (e) => {
+        state.isPaused = !state.isPaused;
+        e.currentTarget.textContent = state.isPaused ? '▶ Hervat' : '⏸ Pauze';
+        restartSlideTimer();
+      });
+
+      const drawer = document.getElementById('settings-drawer');
+      document.getElementById('toggle-settings-btn').addEventListener('click', () => {
+        drawer.classList.remove('translate-x-full');
+      });
+      document.getElementById('close-settings-btn').addEventListener('click', () => {
+        drawer.classList.add('translate-x-full');
+      });
+
+      document.getElementById('interval-select').addEventListener('change', (e) => {
+        state.intervalMs = Number(e.target.value);
+        restartSlideTimer();
+      });
+
+      document.getElementById('season-select').addEventListener('change', (e) => {
+        state.seasonMode = e.target.value;
+        applySeasonTheme();
+        updateDashboardUI();
+      });
+
+      document.getElementById('input-indoor').addEventListener('input', (e) => {
+        state.indoorTemp = parseFloat(e.target.value);
+        updateDashboardUI();
+      });
+
+      document.getElementById('input-humidity').addEventListener('input', (e) => {
+        state.humidity = parseInt(e.target.value, 10);
+        updateDashboardUI();
+      });
+
+      document.getElementById('input-outdoor').addEventListener('input', (e) => {
+        state.outdoorTemp = parseFloat(e.target.value);
+        state.outdoorDesc = 'Handmatig';
+        updateDashboardUI();
+      });
+
+      document.getElementById('input-power').addEventListener('input', (e) => {
+        state.powerWatts = parseInt(e.target.value, 10);
+        updateDashboardUI();
+      });
+
+      document.getElementById('copy-url-btn').addEventListener('click', async () => {
+        const text = document.getElementById('generated-url-preview').textContent.trim();
+        try {
+          await navigator.clipboard.writeText(text);
+          const fb = document.getElementById('copy-feedback');
+          fb.classList.remove('hidden');
+          setTimeout(() => fb.classList.add('hidden'), 2000);
+        } catch (_) {}
+      });
+
+      window.addEventListener('resize', () => {
+        const activeSeason = state.seasonMode === 'auto' ? detectSeasonByDate() : state.seasonMode;
+        initParticles(SEASON_THEMES[activeSeason] || SEASON_THEMES.autumn);
+      });
+    }
+
+    loadFromUrlParams();
+    updateClock();
+    setInterval(updateClock, 1000);
+    applySeasonTheme();
+    updateDashboardUI();
+    bindEvents();
+    showSlide(0);
+    restartSlideTimer();
+    fetchOutdoorWeatherIfNeeded();
+  </script>
+</body>
+</html>
